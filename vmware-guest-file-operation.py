@@ -195,9 +195,6 @@ def download(args):
             guestFilePath=args.downloadpath
         )
 
-    # VMware tools動作確認
-    check_vmware_tools_status(vm_mob)
-
     # ファイルのダウンロード
     r = requests.get(r.url, stream=True, verify=False)
     if(r.status_code == 200):
@@ -237,9 +234,6 @@ def upload(args):
             fileSize=upload_file_size,
             overwrite=args.overwrite
         )
-
-    # VMware tools動作確認
-    check_vmware_tools_status(vm_mob)
 
     # ファイルのアップロード
     with open(upload_file) as f:
