@@ -179,7 +179,7 @@ def download(args):
     # ServiceContent.
     content = login(args)
 
-    # 仮装インスタンスのmobを取得
+    # 仮想インスタンスのmobを取得
     vm_mob = get_mob_info(content, vim.VirtualMachine, args.targetvm)
     check_vmware_tools_status(vm_mob)
 
@@ -218,7 +218,7 @@ def upload(args):
     # ServiceContent.
     content = login(args)
 
-    # 仮装インスタンスのmobを取得
+    # 仮想インスタンスのmobを取得
     vm_mob = get_mob_info(content, vim.VirtualMachine, args.targetvm)
     check_vmware_tools_status(vm_mob)
 
