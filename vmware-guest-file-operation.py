@@ -147,7 +147,7 @@ def check_vmware_tools_status(vm_mob):
         sys.stderr.write("%s: VMware toolsが動作していません\n" % vm_mob.name)
         sys.exit(1)
 
-def save_file_check(save_file, args):
+def check_save_file(save_file, args):
     """
     ダウンロードするファイルの保存先に同じファイル名が存在するか確認します。
     """
@@ -159,7 +159,7 @@ def save_file_check(save_file, args):
             print("stop processing.")
             sys.exit(1)
 
-def upload_file_check(upload_file):
+def check_upload_file(upload_file):
     """
     アップロードするファイルの存在確認をします。
     """
@@ -174,7 +174,7 @@ def download(args):
     """
     # ファイルの存在確認
     save_file = args.savepath
-    save_file_check(save_file, args)
+    check_save_file(save_file, args)
 
     # ServiceContent.
     content = login(args)
@@ -210,7 +210,7 @@ def upload(args):
     """
     # ファイルの存在確認
     upload_file = args.uploadpath
-    upload_file_check(upload_file)
+    check_upload_file(upload_file)
 
     # ServiceContent.
     content = login(args)
