@@ -2,6 +2,7 @@
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim, vmodl
 from getpass import getpass
+from clint.textui import progress
 import os
 import shutil
 import ssl
@@ -198,11 +199,12 @@ def download(args):
     # ファイルのダウンロード
     r = requests.get(r.url, stream=True, verify=False)
     if(r.status_code == 200):
-        with open(save_file, 'wb') as file:
-            r.raw.decode_content = True
-            shutil.copyfileobj(r.raw, file)
-        if(os.path.exists(save_file)):
-            print("file download success.")
+        with open(args.savepath, 'wb') as f:
+            total_length = int(r.headers.get('content-length'))
+            for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024)):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
 
 def upload(args):
     """
@@ -236,7 +238,7 @@ def upload(args):
         )
 
     # ファイルのアップロード
-    with open(upload_file) as f:
+    with open(upload_file, 'rb') as f:
         data = f.read()
         r = requests.put(r, data=data, verify=False)
         if(r.status_code == 200):
