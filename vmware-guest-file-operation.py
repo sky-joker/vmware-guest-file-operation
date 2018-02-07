@@ -201,7 +201,7 @@ def download(args):
     if(r.status_code == 200):
         with open(args.savepath, 'wb') as f:
             total_length = int(r.headers.get('content-length'))
-            for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024)):
+            for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1):
                 if chunk:
                     f.write(chunk)
                     f.flush()
