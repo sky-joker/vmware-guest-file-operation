@@ -33,7 +33,8 @@ $ chmod +x vmware-guest-file-operation.py
 $ ./vmware-guest-file-operation.py -vc vcenter01.local -tvm centos -gu root download -dpth /root/hoge.txt -spth ./hoge.txt
 vCenter Password:
 Guest OS Password:
-file download success.
+vCenter Login process...                [success]
+[################################] 1/1 - 00:00:00
 ```
 
 ### GuestOSへファイルをアップロード
@@ -44,7 +45,8 @@ file download success.
 $ ./vmware-guest-file-operation.py -vc vcenter01.local -tvm centos -gu root upload -upth ./hoge.txt -spth /root/hoge.txt
 vCenter Password:
 Guest OS Password:
-file upload success.
+vCenter Login process...                [success]
+file upload process...                  [success]
 ```
 
 ### GuestOSへファイルをアップロードした後にコマンドを実行する
@@ -63,7 +65,7 @@ pid number: 3545
 
 ## ToDo
 
-[] マルチスレッド化
+[ ] マルチスレッド化
 
 ## ライセンス
 
