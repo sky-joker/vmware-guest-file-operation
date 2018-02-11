@@ -54,7 +54,7 @@ file upload process...                  [success]
 仮想マシン `centos` へ `hoge.txt` をアップロードした後に `rm -f` で削除します。
 
 ```bash
-$ ./vmware-guest-file-operation -vc vcenter01.local -tvm centos -gu root upload -upth ./hoge.txt -spth /root/hoge.txt -c "/usr/bin/rm" -cargs "-f /root/hoge.txt"
+$ ./vmware-guest-file-operation.py -vc vcenter01.local -tvm centos -gu root upload -upth ./hoge.txt -spth /root/hoge.txt -c "/usr/bin/rm" -cargs "-f /root/hoge.txt"
 vCenter Password:
 Guest OS Password:
 vCenter Login process...                [success]
