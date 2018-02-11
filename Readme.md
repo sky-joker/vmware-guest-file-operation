@@ -6,6 +6,7 @@ VMwareのGuestOSに対してファイルのダウンロード及びファイル�
 
 * python3
 * pyvmomi
+* clint
 * requests
 
 ## インストール
@@ -45,6 +46,24 @@ vCenter Password:
 Guest OS Password:
 file upload success.
 ```
+
+### GuestOSへファイルをアップロードした後にコマンドを実行する
+
+仮想マシン `centos` へ `hoge.txt` をアップロードした後に `rm -f` で削除します。
+
+```bash
+$ ./vmware-guest-file-operation -vc vcenter01.local -tvm centos -gu root upload -upth ./hoge.txt -spth /root/hoge.txt -c "/usr/bin/rm" -cargs "-f /root/hoge.txt"
+vCenter Password:
+Guest OS Password:
+vCenter Login process...                [success]
+file upload process...                  [success]
+command execute process...              [success]
+pid number: 3545
+```
+
+## ToDo
+
+[] マルチスレッド化
 
 ## ライセンス
 

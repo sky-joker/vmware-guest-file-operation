@@ -4,7 +4,8 @@ from pyVmomi import vim, vmodl
 from getpass import getpass
 from clint.textui import progress
 import os
-import shutil
+import time
+import re
 import ssl
 import atexit
 import argparse
@@ -14,6 +15,11 @@ import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 __license__ = 'MIT'
+
+class colors:
+    GREEN = '\033[32m'
+    RED = '\033[91m'
+    END = '\033[0m'
 
 def options():
     """
@@ -71,6 +77,15 @@ def options():
     parser_upload.add_argument('--overwrite', '-ow',
                                action='store_true',
                                help='GuestOSに同名のファイル名があった場合の上書きを許可')
+    parser_upload.add_argument('--cmd', '-c',
+                               type=str,
+                               help='ファイルアップロード後に実行するコマンド')
+    parser_upload.add_argument('--cmd-args', '-cargs',
+                               type=str,
+                               help='ファイルアップロード後に実行するコマンドの引数')
+    parser_upload.add_argument('--wait-execute-process', '-wproc',
+                               action='store_true',
+                               help='ファイルアップロード後に実行したコマンドの終了を')
     parser_upload.set_defaults(handler=upload)
 
     args = parser.parse_args()
@@ -106,12 +121,18 @@ def get_mob_info(content, mob, target=''):
                                                 True)
 
     # 返すmobを名前で指定する場合
+    vm_mob = ''
     if(target):
         for i in r.view:
             if(i.name == target):
-                r = i
+                vm_mob = i
+                break
 
-    return r
+    if(not(vm_mob)):
+        sys.stderr.write('error msg: ' + colors.RED + target + ' not found.' + colors.END + '\n')
+        sys.exit(1)
+
+    return vm_mob
 
 def login(args):
     """
@@ -126,10 +147,17 @@ def login(args):
         context = ssl._create_unverified_context()
 
     # 接続
-    si = SmartConnect(host = args.host,
-                      user = args.username,
-                      pwd = args.password,
-                      sslContext = context)
+    try:
+        si = SmartConnect(host = args.host,
+                          user = args.username,
+                          pwd = args.password,
+                          sslContext = context)
+    except Exception as error:
+        sys.stderr.write('vCenter Login process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+        sys.stderr.write('error msg: ' + colors.RED + error.msg + colors.END + '\n')
+        sys.exit(1)
+    else:
+        sys.stdout.write('vCenter Login process...'.ljust(40) + '[' + colors.GREEN + 'success' + colors.END + ']\n')
 
     # 処理完了時にvCenterから切断
     atexit.register(Disconnect, si)
@@ -145,7 +173,7 @@ def check_vmware_tools_status(vm_mob):
     """
     vmware_tools_status = vm_mob.guest.toolsStatus
     if(not(vmware_tools_status == 'toolsOk')):
-        sys.stderr.write("%s: VMware toolsが動作していません\n" % vm_mob.name)
+        sys.stderr.write('error msg: ' + colors.RED + 'VMware tools of ' + vm_mob.name + ' is not working.' + colors.END + '\n')
         sys.exit(1)
 
 def check_save_file(save_file, args):
@@ -153,11 +181,11 @@ def check_save_file(save_file, args):
     ダウンロードするファイルの保存先に同じファイル名が存在するか確認します。
     """
     if(os.path.exists(save_file)):
-        print("file exists in the file save destination.")
+        sys.stdout.write('file exists in the file save destination.\n')
         if(args.overwrite):
-            print("file overwrite.")
+            sys.stdout.write('file overwrite.\n')
         else:
-            print("stop processing.")
+            sys.stderr.write('error msg: ' + colors.RED + 'stop processing.' + colors.END + '\n')
             sys.exit(1)
 
 def check_upload_file(upload_file):
@@ -165,8 +193,7 @@ def check_upload_file(upload_file):
     アップロードするファイルの存在確認をします。
     """
     if(not(os.path.exists(upload_file))):
-        print("file to be uploaded does not exist.")
-        print("stop processing.")
+        sys.stderr.write('error msg: ' + colors.RED + 'file to be uploaded does not exist.' + colors.END + '\n')
         sys.exit(1)
 
 def download(args):
@@ -190,11 +217,16 @@ def download(args):
     guest_auth.password = args.guestpassword
 
     # Guestからダウンロードするファイル情報を取得
-    r = content.guestOperationsManager.fileManager.InitiateFileTransferFromGuest(
-            vm=vm_mob,
-            auth=guest_auth,
-            guestFilePath=args.downloadpath
-        )
+    try:
+        r = content.guestOperationsManager.fileManager.InitiateFileTransferFromGuest(
+                vm=vm_mob,
+                auth=guest_auth,
+                guestFilePath=args.downloadpath
+            )
+    except Exception as error:
+        sys.stderr.write('file download process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+        sys.stderr.write('error msg: ' + colors.RED + error.msg + colors.END + '\n')
+        sys.exit(1)
 
     # ファイルのダウンロード
     r = requests.get(r.url, stream=True, verify=False)
@@ -205,6 +237,10 @@ def download(args):
                 if chunk:
                     f.write(chunk)
                     f.flush()
+    else:
+        sys.stderr.write('file download process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+        sys.stderr.write('error msg: ' + colors.RED + 'GET request did not succeed.' + colors.END + '\n')
+        sys.exit(1)
 
 def upload(args):
     """
@@ -228,21 +264,79 @@ def upload(args):
 
     # Guestへアップロードするファイル情報を取得
     upload_file_size = os.path.getsize(upload_file)
-    r = content.guestOperationsManager.fileManager.InitiateFileTransferToGuest(
-            vm=vm_mob,
-            auth=guest_auth,
-            guestFilePath=args.savepath,
-            fileAttributes=vim.vm.guest.FileManager.FileAttributes(),
-            fileSize=upload_file_size,
-            overwrite=args.overwrite
-        )
+    try:
+        r = content.guestOperationsManager.fileManager.InitiateFileTransferToGuest(
+                vm=vm_mob,
+                auth=guest_auth,
+                guestFilePath=args.savepath,
+                fileAttributes=vim.vm.guest.FileManager.FileAttributes(),
+                fileSize=upload_file_size,
+                overwrite=args.overwrite
+            )
+    except Exception as error:
+        sys.stderr.write('file upload process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+        sys.stderr.write('error msg: ' + colors.RED + error.msg + colors.END + '\n')
+        sys.exit(1)
 
     # ファイルのアップロード
     with open(upload_file, 'rb') as f:
         data = f.read()
         r = requests.put(r, data=data, verify=False)
         if(r.status_code == 200):
-            print("file upload success.")
+            sys.stdout.write('file upload process...'.ljust(40) + '[' + colors.GREEN + 'success' + colors.END + ']\n')
+
+            # コマンド実行する場合
+            if(args.cmd):
+                guest_program_spec = vim.vm.guest.ProcessManager.ProgramSpec()
+                guest_program_spec.arguments = args.cmd_args if(args.cmd_args) else ''
+                guest_program_spec.programPath = args.cmd
+                try:
+                    r = content.guestOperationsManager.processManager.StartProgramInGuest(
+                        vm=vm_mob,
+                        auth=guest_auth,
+                        spec=guest_program_spec
+                    )
+                except Exception as error:
+                    sys.stderr.write('command execute process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+                    sys.stderr.write('error msg: ' + colors.RED + error.msg + colors.END + '\n')
+                    sys.exit(1)
+                else:
+                    pid = str(r)
+                    sys.stdout.write('command execute process...'.ljust(40) + '[' + colors.GREEN + 'success' + colors.END + ']\n')
+                    sys.stdout.write('pid number: %s\n' % pid)
+
+                    # 実行したプロセスの終了を待つ
+                    if(args.wait_execute_process == True):
+                        check_count = 0
+                        fail_count = 0
+                        while True:
+                            try:
+                                r = content.guestOperationsManager.processManager.ListProcessesInGuest(
+                                    vm=vm_mob,
+                                    auth=guest_auth
+                                )
+                            except Exception as error:
+                                sys.stderr.write('pid check process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+                                sys.stderr.write('error msg: ' + colors.RED + error.msg + colors.END + '\n')
+                                sys.exit(1)
+
+                            pid_num = [ x for x in r if(re.search(r'%s %s' % (args.cmd, args.cmd_args), x.cmdLine)) ]
+                            if(len(pid_num) >= 1 and check_count >= 0):
+                                sys.stdout.write('Processing in progress...')
+                                sys.stdout.flush()
+                                sys.stdout.write('\r')
+                                check_count += 1
+                                time.sleep(1)
+                            if(len(pid_num) == 0 and check_count == 0):
+                                fail_count += 1
+                                time.sleep(1)
+                            if(len(pid_num) == 0 and check_count >= 1 or fail_count == 5):
+                                sys.stdout.write('process finish....'.ljust(40) + '[' + colors.GREEN + 'success' + colors.END + ']\n')
+                                break
+        else:
+            sys.stderr.write('file upload process...'.ljust(40) + '[' + colors.RED + 'failed' + colors.END + ']\n')
+            sys.stderr.write('error msg: ' + colors.RED + 'POST request did not succeed.' + colors.END + '\n')
+            sys.exit(1)
 
 if __name__ == "__main__":
     options()
