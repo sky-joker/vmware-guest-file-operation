@@ -251,7 +251,7 @@ def download(args):
 
             # Guestからダウンロードするファイル情報を取得
             try:
-                r = content.guestOperationsManager.fileManager.InitiateFileTransferFromGuest(
+                r = self.content.guestOperationsManager.fileManager.InitiateFileTransferFromGuest(
                     vm=self.vm_mob,
                     auth=guest_auth,
                     guestFilePath=self.args.downloadpath
@@ -278,37 +278,40 @@ def download(args):
                 sys.stderr.write('error msg: '.rjust(15) + colors.RED + 'GET request did not succeed.' + colors.END + '\n')
                 sys.exit(1)
 
-    # ファイルの存在確認
-    save_file = args.savepath
-    check_save_file(save_file, args)
+    def main(args):
+        # ファイルの存在確認
+        save_file = args.savepath
+        check_save_file(save_file, args)
 
-    # ServiceContent.
-    content = login(args)
+        # ServiceContent.
+        content = login(args)
 
-    # 仮想インスタンスのmobを取得
-    vm_mobs = get_mob_info(content, vim.VirtualMachine, args.targetvm)
-    check_vmware_tools_status(vm_mobs)
+        # 仮想インスタンスのmobを取得
+        vm_mobs = get_mob_info(content, vim.VirtualMachine, args.targetvm)
+        check_vmware_tools_status(vm_mobs)
 
-    # マルチスレッド
-    threads = []
-    for vm_mob in vm_mobs:
-        t = downloadThread()
-        t.save_file = save_file
-        t.args = args
-        t.vm_mob = vm_mob
-        t.content = content
-        t.start()
-        threads.append(t)
+        # マルチスレッド
+        threads = []
+        for vm_mob in vm_mobs:
+            t = downloadThread()
+            t.save_file = save_file
+            t.args = args
+            t.vm_mob = vm_mob
+            t.content = content
+            t.start()
+            threads.append(t)
 
-        # Max Thread確認
-        if (len(threads) >= args.max_thread):
-            while True:
-                for t in threads:
-                    if (not (t.is_alive())):
-                        threads.remove(t)
-                if (len(threads) < args.max_thread):
-                    break
-                time.sleep(1)
+            # Max Thread確認
+            if (len(threads) >= args.max_thread):
+                while True:
+                    for t in threads:
+                        if (not (t.is_alive())):
+                            threads.remove(t)
+                    if (len(threads) < args.max_thread):
+                        break
+                    time.sleep(1)
+
+    main(args)
 
 def upload(args):
     """
