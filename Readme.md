@@ -27,40 +27,47 @@ $ chmod +x vmware-guest-file-operation.py
 
 ### GuestOSからファイルをダウンロード
 
-仮想マシン名 `centos` から `hoge.txt` をダウンロードします。
+仮想マシン名 `devel2` `devel3` `devel3-rhel` から `hoge.txt` をダウンロードします。
 
-```bash
-$ ./vmware-guest-file-operation.py -vc vcenter01.local -tvm centos -gu root download -dpth /root/hoge.txt -spth ./hoge.txt
+```
+$ ./vmware-guest-file-operation.py -vc vcenter.local -tvm devel2 devel3 devel3-rhel -gu root download -dpth /root/hoge.txt -spth ./hoge.txt
 vCenter Password:
 Guest OS Password:
 vCenter Login process...                [success]
-[################################] 1/1 - 00:00:00
+download file from devel3               [################################] 1/1 - 00:00:00
+download file from devel2               [################################] 1/1 - 00:00:00
+download file from devel3-rhel          [################################] 1/1 - 00:00:00
 ```
 
 ### GuestOSへファイルをアップロード
 
-仮想マシン `centos` へ `hoge.txt` をアップロードします。
+仮想マシン `devel2` `devel3` `devel3-rhel` へ `hoge.txt` をアップロードします。
 
-```bash
-$ ./vmware-guest-file-operation.py -vc vcenter01.local -tvm centos -gu root upload -upth ./hoge.txt -spth /root/hoge.txt
+```
+$ ./vmware-guest-file-operation.py -vc vcenter.local -tvm devel2 devel3 devel3-rhel -gu root upload -upth ./hoge.txt -spth /root/hoge.txt
 vCenter Password:
 Guest OS Password:
 vCenter Login process...                [success]
-file upload process...                  [success]
+devel3 file upload process...           [success]
+devel2 file upload process...           [success]
+devel3-rhel file upload process...      [success]
 ```
 
 ### GuestOSへファイルをアップロードした後にコマンドを実行する
 
-仮想マシン `centos` へ `hoge.txt` をアップロードした後に `rm -f` で削除します。
+仮想マシン `devel2` `devel3` `devel3-rhel` へ `hoge.txt` をアップロードした後に `rm -f` で削除します。
 
-```bash
-$ ./vmware-guest-file-operation.py -vc vcenter01.local -tvm centos -gu root upload -upth ./hoge.txt -spth /root/hoge.txt -c "/usr/bin/rm" -cargs "-f /root/hoge.txt"
+```
+./vmware-guest-file-operation.py -vc vcenter.local -tvm devel2 devel3 devel3-rhel -gu root upload -upth ./hoge.txt -spth /root/hoge.txt -c /usr/bin/rm -cargs "-f hoge.txt"
 vCenter Password:
 Guest OS Password:
 vCenter Login process...                [success]
-file upload process...                  [success]
-command execute process...              [success]
-pid number: 3545
+devel3 file upload process...           [success]
+devel2 file upload process...           [success]
+devel3-rhel file upload process...      [success]
+devel3 command execute finish           [success]
+devel2 command execute finish           [success]
+devel3-rhel command execute finish      [success]
 ```
 
 ## ToDo
