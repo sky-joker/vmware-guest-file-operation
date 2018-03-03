@@ -218,17 +218,22 @@ def check_vmware_tools_status(vm_mobs):
 
     return vm_mobs
 
-def check_save_file(save_file, args):
+def check_save_file(save_file, t, args):
     """
     ダウンロードするファイルの保存先に同じファイル名が存在するか確認します。
     """
     if(os.path.exists(save_file)):
-        sys.stdout.write('file exists in the file save destination.\n')
+        sys.stdout.write('[%s] file exists in the file save destination.\n' % t)
         if(args.overwrite):
             sys.stdout.write('file overwrite.\n')
         else:
             sys.stderr.write('error msg: ' + colors.RED + 'stop processing.' + colors.END + '\n')
             sys.exit(1)
+    else:
+        # 保存先パスが存在しない場合はVM名のディレクトリを作成する
+        path, file = os.path.split(save_file)
+        if(not(os.path.isdir(path))):
+            os.makedirs(path)
 
 def check_upload_file(upload_file):
     """
@@ -268,7 +273,7 @@ def download(args):
                 msg = 'download file from %s' % self.vm_mob.name
                 with open(self.save_file, 'wb') as f:
                     total_length = int(r.headers.get('content-length'))
-                    for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024), label=msg.ljust(40)):
+                    for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024 + 1), label=msg.ljust(40)):
                         if chunk:
                             f.write(chunk)
                             f.flush()
@@ -280,8 +285,12 @@ def download(args):
 
     def main(args):
         # ファイルの存在確認
-        save_file = args.savepath
-        check_save_file(save_file, args)
+        save_file_map = {}
+        for t in args.targetvm:
+            path, file = os.path.split(args.savepath)
+            save_file = os.path.join(path, t, file)
+            check_save_file(save_file, t, args)
+            save_file_map[t] = save_file
 
         # ServiceContent.
         content = login(args)
@@ -294,7 +303,7 @@ def download(args):
         threads = []
         for vm_mob in vm_mobs:
             t = downloadThread()
-            t.save_file = save_file
+            t.save_file = save_file_map[vm_mob.name]
             t.args = args
             t.vm_mob = vm_mob
             t.content = content
