@@ -391,7 +391,7 @@ def upload(args):
 
                             pid_num = [ x for x in r if(re.search(r'%s.*%s' % (self.args.cmd, self.args.cmd_args), x.cmdLine)) ]
                             if(pid_num):
-                                msg = '%s processing in process...' % self.vm_mob.name
+                                msg = 'processing in %s...' % self.vm_mob.name
                                 sys.stdout.write(msg + '\r')
                                 exitCode = pid_num.pop().exitCode
                                 if(isinstance(exitCode, int)):
