@@ -212,7 +212,7 @@ def check_vmware_tools_status(vm_mobs):
     """
     for vm_mob in vm_mobs:
         vmware_tools_status = vm_mob.guest.toolsStatus
-        if(not(vmware_tools_status == 'toolsOk')):
+        if(not(vmware_tools_status == 'toolsOk') and not(vmware_tools_status == 'toolsOld')):
             sys.stderr.write('error msg: ' + colors.RED + 'VMware tools of ' + vm_mob.name + ' is not working.' + colors.END + '\n')
             vm_mobs.remove(vm_mob)
 
